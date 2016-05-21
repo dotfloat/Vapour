@@ -1,0 +1,7 @@
+# Ignore CLion
+/.idea
+
+# Ignore various build directories
+/build
+/tmp
+/temp
