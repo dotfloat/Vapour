@@ -1,10 +1,25 @@
 #include <stdlib.h>
 #include <ctype.h>
-#include "../libvapour/steamcmd.h"
-#include "../libvapour/appinfo.h"
 #include "string.h"
+#include "../libvapour/appinfo.h"
+#include <unistd.h>
+#include <getopt.h>
+#include <vapour.h>
 
-void vapour_init();
+static enum vapour_system arg_system = VAPOUR_WINDOWS;
+
+int install(int argc, char *argv[]) {
+    if (argc == 0) {
+        printf("Missing argument\n");
+        return EXIT_FAILURE;
+    }
+
+    if (isdigit(argv[0][0])) {
+        return vapour_install(strtol(argv[0], 0, 10), arg_system);
+    }
+
+    return EXIT_FAILURE;
+}
 
 int search(int argc, char *argv[]) {
     struct appinfo info = { 0 };
@@ -35,18 +50,77 @@ int search(int argc, char *argv[]) {
     return EXIT_SUCCESS;
 }
 
-#define SHIFT_CALL(fn, n) fn(argc - n, argv + n)
+static void usage() {
+    const char *usagestr =
+        "Vapour\n"
+        "A game manager based on SteamCMD\n"
+        "\n"
+        "USAGE:\n"
+        "    vapour [OPERATION] [FLAGS]\n";
+
+    puts(usagestr);
+}
+
+static const char *short_opts = "wxl";
+
+static struct option long_opts[] = {
+    { "windows", no_argument, 0, 'w' },
+    { "osx", no_argument, 0, 'x' },
+    { "linux", no_argument, 0, 'l' },
+    NULL
+};
+
 int main(int argc, char *argv[])
 {
-    if (argc <= 1) {
-        printf("syntax:\n");
+    int index;
+    int c;
+
+    if (!vapour_is_setup()) {
+        printf("Vapour needs to download SteamCMD and create a few directories on your system.\n");
+        printf("Do you want to continue? (y/N)");
+
+        if (getchar() != 'y') {
+            printf("Aborting.\n");
+            return EXIT_FAILURE;
+        }
+
+        if (!vapour_setup()) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    while ((c = getopt_long(argc, argv, short_opts, long_opts, &index)) != -1) {
+        switch (c) {
+        case 'w':
+            arg_system = VAPOUR_WINDOWS;
+            break;
+
+        case 'x':
+            arg_system = VAPOUR_MACOS;
+            break;
+
+        case 'l':
+            arg_system = VAPOUR_LINUX;
+            break;
+
+        default:
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (optind >= argc) {
+        usage();
         return EXIT_FAILURE;
     }
 
-    if (!strcmp(argv[1], "search")) {
-        return SHIFT_CALL(search, 2);
-    }
+#define COMMAND(fn) if (!strcmp(argv[optind], #fn)) \
+        return fn(argc - optind - 1, argv + optind + 1);
 
-    return EXIT_SUCCESS;
+    COMMAND(search)
+    COMMAND(install)
+
+#undef COMMAND
+
+    usage();
+    return EXIT_FAILURE;
 }
-#undef SHIFT_CALL

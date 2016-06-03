@@ -12,6 +12,12 @@ project(Vapour C)
 option(ENABLE_CLI "Compile the CLI vapour binary" ON)
 
 ##------------------------------------------------------------------------------
+## External Libraries
+##
+
+find_package(CURL REQUIRED)
+
+##------------------------------------------------------------------------------
 ## Sources
 ##
 
@@ -35,6 +41,8 @@ add_compile_options(-D_GNU_SOURCE)
 
 # libvapour.so
 add_library(libvapour SHARED ${LIBVAPOUR_SOURCES})
+target_include_directories(libvapour PRIVATE ${CURL_INCLUDE_DIR})
+target_link_libraries(libvapour ${CURL_LIBRARY})
 
 # vapour
 if (ENABLE_CLI)

@@ -14,6 +14,8 @@ enum vapour_os {
     OS_ANY,
 };
 
+char *get_root();
+
 static const char *get_steamcmd()
 {
     static char path[512] = { 0 };
@@ -23,7 +25,7 @@ static const char *get_steamcmd()
         return path;
     }
 
-    root = vapour_root();
+    root = get_root();
 
     assert(root);
 
@@ -39,7 +41,7 @@ void steamcmd_exec(const char *args)
     char buf[1024];
     int exit_status;
 
-    asprintf(&new_args, "%s %s +asdf +quit", get_steamcmd(), args);
+    asprintf(&new_args, "%s +login USERNAME PASSWORD %s +quit", get_steamcmd(), args);
 
     if (!(fd = popen(new_args, "r"))) {
         perror("Failed to exec steamcmd");

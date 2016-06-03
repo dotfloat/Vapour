@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include "dir.h"
 
 #define MAX_PATH_LEN 512
 
-static char *get_root()
+char *get_root()
 {
     static char cached[MAX_PATH_LEN] = {0};
     char *path;
@@ -82,7 +83,7 @@ static int dir_create_recursive(const char *path)
     return 1;
 }
 
-int root_exists(const char *subdir)
+int dir_exists_in_root(const char *subdir)
 {
     char *root = get_root();
     char *path;
@@ -101,7 +102,7 @@ int root_exists(const char *subdir)
     return r;
 }
 
-int root_create(const char *subdir)
+int dir_create_in_root(const char *subdir)
 {
     char *root = get_root();
     char *path;
@@ -109,13 +110,13 @@ int root_create(const char *subdir)
 
     assert(root);
 
-    if (root_exists(subdir)) {
+    if (dir_exists_in_root(subdir)) {
         return 1;
     }
 
     if (subdir == NULL) {
         return dir_create_recursive(root);
-    }
+       }
 
     asprintf(&path, "%s/%s", root, subdir);
     r = dir_create_recursive(path);
@@ -127,4 +128,26 @@ int root_create(const char *subdir)
 const char *vapour_root()
 {
     return get_root();
+}
+
+bool file_exists(const char *path)
+{
+    struct stat st;
+
+    return !stat(path, &st) && S_ISREG(st.st_mode);
+}
+
+bool file_exists_in_root(const char *path)
+{
+    char *root = get_root();
+    char *buf;
+    bool ret;
+
+    assert(root);
+
+    asprintf(&buf, "%s/%s", root, path);
+    ret = file_exists(buf);
+    free(buf);
+
+    return ret;
 }
